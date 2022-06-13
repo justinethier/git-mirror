@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Create initial mirror copy of a repository that is using git LFS
+# Create initial mirror copy of a repository that is using Git LFS
 #
 
 git clone --bare https://remote-server/remote-org/repo-to-mirror.git
