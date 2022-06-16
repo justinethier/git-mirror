@@ -1,0 +1,37 @@
+#!/bin/bash
+
+#if (( $# < 2 )); then
+#    echo "Usage: TODO"
+#    exit 1
+#fi
+
+clone() {
+  git clone --bare $1
+  cd *.git
+  git lfs fetch --all
+  git config lfs.https://$2/info/lfs.locksverify true
+# TODO: what format to use for $2? see creation script
+  git remote set-url origin git@$2
+  #git lfs push --all
+  #git lfs push --all git@$2
+  #git lfs push --all origin
+  #git push --mirror
+}
+
+
+case "$1" in
+    clone)
+        clone $2
+        ;;
+#    stop)
+#        stop
+#        ;;
+#    reload|restart)
+#        restart
+#        ;;
+    *)
+        echo $"Usage: $0 TODO"
+        exit 1
+esac
+
+#https://github.com/justinethier/git-mirror
