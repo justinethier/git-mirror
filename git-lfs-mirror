@@ -1,37 +1,82 @@
 #!/bin/bash
 
-#if (( $# < 2 )); then
-#    echo "Usage: TODO"
-#    exit 1
-#fi
-
 clone() {
+  REMOTE_REPO=`echo "$1" | cut -d"/" -f 5`
+  SERVER=`echo "$2" | cut -d"/" -f 1 | cut -d"@" -f 2 | cut -d":" -f 1`
+  ORG=`echo "$2" | cut -d"/" -f 1 | cut -d"@" -f 2 | cut -d":" -f 2`
+  REPO=`echo "$2" | cut -d"/" -f 2`
+  echo "mirror to: $SERVER $ORG $REPO"
   git clone --bare $1
-  cd *.git
+  cd $REMOTE_REPO
   git lfs fetch --all
-  git config lfs.https://$2/info/lfs.locksverify true
-# TODO: what format to use for $2? see creation script
-  git remote set-url origin git@$2
-  #git lfs push --all
-  #git lfs push --all git@$2
-  #git lfs push --all origin
-  #git push --mirror
+  git config lfs.https://$SERVER/$ORG/$REPO/info/lfs.locksverify true
+  git remote set-url origin $2
+  git lfs push --all
+  git lfs push --all git@$2
+  git lfs push --all origin
+  git push --mirror
 }
 
+sync() {
+  REMOTE_REPO=`echo "$1" | cut -d"/" -f 5`
+  SERVER=`echo "$2" | cut -d"/" -f 1 | cut -d"@" -f 2 | cut -d":" -f 1`
+  ORG=`echo "$2" | cut -d"/" -f 1 | cut -d"@" -f 2 | cut -d":" -f 2`
+  REPO=`echo "$2" | cut -d"/" -f 2`
+  DIR=`echo "$REPO" | cut -d"." -f 1`
+  # Clone a local copy of our mirror and get assets from LFS
+  git clone $2
+  cd $DIR
+  git lfs fetch --all
+
+  # Fetch upstream changes including LFS
+  git remote add upstream $1
+  git remote update upstream
+  git lfs fetch upstream --all
+
+  # Setup our local git to track all branches so we can sync them
+  # Solution from: https://stackoverflow.com/a/4754797/101258
+  for branch in $(git branch --all | grep '^\s*remotes' | egrep --invert-match '(:?HEAD|master)$'); do
+      git branch --track "${branch##*/}" "$branch"
+  done
+  git fetch --all
+
+  # Finally, push everything to our local Gitlab mirror
+  git push origin --all
+  git push origin --tags
+}
+
+update() {
+  # Clone a local copy of our mirror and get assets from LFS
+  git lfs fetch --all
+
+  # Fetch upstream changes including LFS
+  git remote update upstream
+  git lfs fetch upstream --all
+
+  # Setup our local git to track all branches so we can sync them
+  # Solution from: https://stackoverflow.com/a/4754797/101258
+  for branch in $(git branch --all | grep '^\s*remotes' | egrep --invert-match '(:?HEAD|master)$'); do
+      git branch --track "${branch##*/}" "$branch"
+  done
+  git fetch --all
+
+  # Finally, push everything to our local Gitlab mirror
+  git push origin --all
+  git push origin --tags
+}
 
 case "$1" in
     clone)
-        clone $2
+        clone $2 $3
         ;;
-#    stop)
-#        stop
-#        ;;
-#    reload|restart)
-#        restart
-#        ;;
+    sync)
+        sync $2 $3
+        ;;
+    update)
+        update
+        ;;
     *)
         echo $"Usage: $0 TODO"
         exit 1
 esac
 
-#https://github.com/justinethier/git-mirror
