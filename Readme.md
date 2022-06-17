@@ -1,3 +1,5 @@
+TODO: update documentation to use single script
+
 For repos using [Git LFS](https://git-lfs.github.com/):
 
 - `create-with-lfs.sh` - Create initial local repository.
