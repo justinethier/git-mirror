@@ -56,8 +56,8 @@ update() {
 
   # Setup our local git to track all branches so we can sync them
   # Solution from: https://stackoverflow.com/a/4754797/101258
-  #for branch in $(git branch --all | grep '^\s*remotes' | egrep --invert-match '(:?HEAD|master)$'); do
-  for branch in $(git for-each-ref --format='%(refname)' refs/remotes/upstream | cut -d'/' -f 4); do
+  for branch in $(git branch --all | grep '^\s*remotes' | egrep --invert-match '(:?HEAD|master)$'); do
+  #for branch in $(git for-each-ref --format='%(refname)' refs/remotes/upstream | cut -d'/' -f 4); do
       echo "Track $branch"
       git branch --track "${branch##*/}" "$branch"
   done
