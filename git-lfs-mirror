@@ -1,6 +1,6 @@
 #!/bin/bash
 
-clone() {
+init() {
   REMOTE_REPO=`echo "$1" | cut -d"/" -f 5`
   SERVER=`echo "$2" | cut -d"/" -f 1 | cut -d"@" -f 2 | cut -d":" -f 1`
   ORG=`echo "$2" | cut -d"/" -f 1 | cut -d"@" -f 2 | cut -d":" -f 2`
@@ -17,7 +17,7 @@ clone() {
   git push --mirror
 }
 
-sync() {
+clone() {
   REMOTE_REPO=`echo "$1" | cut -d"/" -f 5`
   SERVER=`echo "$2" | cut -d"/" -f 1 | cut -d"@" -f 2 | cut -d":" -f 1`
   ORG=`echo "$2" | cut -d"/" -f 1 | cut -d"@" -f 2 | cut -d":" -f 2`
@@ -35,7 +35,8 @@ sync() {
 
   # Setup our local git to track all branches so we can sync them
   # Solution from: https://stackoverflow.com/a/4754797/101258
-  for branch in $(git branch --all | grep '^\s*remotes' | egrep --invert-match '(:?HEAD|master)$'); do
+  #for branch in $(git branch --all | grep '^\s*remotes' | egrep --invert-match '(:?HEAD|master)$'); do
+  for branch in $(git for-each-ref --format='%(refname)' refs/remotes/upstream | cut -d'/' -f 4); do
       git branch --track "${branch##*/}" "$branch"
   done
   git fetch --all
@@ -49,34 +50,47 @@ update() {
   # Clone a local copy of our mirror and get assets from LFS
   git lfs fetch --all
 
-  # Fetch upstream changes including LFS
+  ## Fetch upstream changes including LFS
   git remote update upstream
   git lfs fetch upstream --all
 
   # Setup our local git to track all branches so we can sync them
   # Solution from: https://stackoverflow.com/a/4754797/101258
-  for branch in $(git branch --all | grep '^\s*remotes' | egrep --invert-match '(:?HEAD|master)$'); do
+  #for branch in $(git branch --all | grep '^\s*remotes' | egrep --invert-match '(:?HEAD|master)$'); do
+  for branch in $(git for-each-ref --format='%(refname)' refs/remotes/upstream | cut -d'/' -f 4); do
+      echo "Track $branch"
       git branch --track "${branch##*/}" "$branch"
+  done
+  for branch in $(git for-each-ref --format='%(refname)' refs/heads/ | cut -d"/" -f 3); do
+  #for branch in $(git branch); do
+      # Attempt to pick up changes across all branches
+      echo "Merge $branch"
+      git checkout "$branch"
+      git pull
+      git merge upstream/"$branch"
   done
   git fetch --all
 
-  # Finally, push everything to our local Gitlab mirror
+  ## Finally, push everything to our local Gitlab mirror
   git push origin --all
   git push origin --tags
 }
 
 case "$1" in
+    init)
+        init $2 $3
+        ;;
     clone)
         clone $2 $3
-        ;;
-    sync)
-        sync $2 $3
         ;;
     update)
         update
         ;;
     *)
-        echo $"Usage: $0 TODO"
+        cat << EOF
+Usage: $0
+TODO
+EOF
         exit 1
 esac
 
