@@ -41,7 +41,7 @@ clone() {
   done
   git fetch --all
 
-  # Finally, push everything to our local Gitlab mirror
+  # Finally, push everything to our local git mirror
   git push origin --all
   git push origin --tags
 }
@@ -71,7 +71,7 @@ update() {
   done
   git fetch --all
 
-  ## Finally, push everything to our local Gitlab mirror
+  ## Finally, push everything to our local git mirror
   git push origin --all
   git push origin --tags
 }
@@ -88,8 +88,16 @@ case "$1" in
         ;;
     *)
         cat << EOF
-Usage: $0
-TODO
+Usage: $0 command args
+
+The following commands are provided:
+
+  init REMOTE_REPO SERVER
+  clone REMOTE_REPO SERVER
+  update
+
+TODO: descriptions, examples for each command
+
 EOF
         exit 1
 esac
