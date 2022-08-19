@@ -1,0 +1,135 @@
+#!/bin/bash
+#
+# git-mirror
+# https://github.com/justinethier/git-mirror                                       
+#
+# Copyright (c) 2022, Justin Ethier                                        
+# All rights reserved.                                                          
+#
+
+#
+# Create our initial mirror repo
+#
+init() {
+  REMOTE_REPO=`echo "$1" | cut -d"/" -f 5`
+  SERVER=`echo "$2" | cut -d"/" -f 1 | cut -d"@" -f 2 | cut -d":" -f 1`
+  ORG=`echo "$2" | cut -d"/" -f 1 | cut -d"@" -f 2 | cut -d":" -f 2`
+  REPO=`echo "$2" | cut -d"/" -f 2`
+  echo "mirror to: $SERVER $ORG $REPO"
+  git clone --bare $1
+  cd $REMOTE_REPO
+  git remote set-url origin $2
+  git push --mirror
+}
+
+#
+# Create a clone of our mirrored repo
+#
+clone() {
+  REMOTE_REPO=`echo "$1" | cut -d"/" -f 5`
+  SERVER=`echo "$2" | cut -d"/" -f 1 | cut -d"@" -f 2 | cut -d":" -f 1`
+  ORG=`echo "$2" | cut -d"/" -f 1 | cut -d"@" -f 2 | cut -d":" -f 2`
+  REPO=`echo "$2" | cut -d"/" -f 2`
+  DIR=`echo "$REPO" | cut -d"." -f 1`
+  # Clone a local copy of our mirror
+  git clone $2
+  cd $DIR
+
+  # Fetch upstream changes
+  git remote add upstream $1
+  git remote update upstream
+
+  # Setup our local git to track all branches so we can sync them
+  # Solution from: https://stackoverflow.com/a/4754797/101258
+  #for branch in $(git branch --all | grep '^\s*remotes' | egrep --invert-match '(:?HEAD|master)$'); do
+  for branch in $(git for-each-ref --format='%(refname)' refs/remotes/upstream | cut -d'/' -f 4); do
+      git branch --track "${branch##*/}" "$branch"
+  done
+  git fetch --all
+
+  # Finally, push everything to our local git mirror
+  git push origin --all
+  git push origin --tags
+}
+
+#
+# Update our mirrored repo with changes from upstream
+#
+update() {
+  ## Fetch upstream changes
+  git remote update upstream
+
+  # Setup our local git to track all branches so we can sync them
+  # Solution from: https://stackoverflow.com/a/4754797/101258
+  for branch in $(git branch --all | grep '^\s*remotes' | egrep --invert-match '(:?HEAD|master)$'); do
+  #for branch in $(git for-each-ref --format='%(refname)' refs/remotes/upstream | cut -d'/' -f 4); do
+      echo "Track $branch"
+      git branch --track "${branch##*/}" "$branch"
+  done
+  for branch in $(git for-each-ref --format='%(refname)' refs/heads/ | cut -d"/" -f 3); do
+  #for branch in $(git branch); do
+      # Attempt to pick up changes across all branches
+      echo "Merge $branch"
+      git checkout "$branch"
+      git pull
+      git merge upstream/"$branch"
+  done
+  git fetch --all
+
+  ## Finally, push everything to our local git mirror
+  git push origin --all
+  git push origin --tags
+}
+
+case "$1" in
+    init)
+        init $2 $3
+        ;;
+    clone)
+        clone $2 $3
+        ;;
+    update)
+        update
+        ;;
+    *)
+        cat << EOF
+Usage: $0 command args
+
+The following commands are provided:
+
+  init REMOTE_REPO SERVER
+
+    Run the init command to create the initial mirror of a repository, and push
+    that mirror to the specified server.
+
+    This command will create a bare repository on your local machine. This is
+    not suitable for check outs so once the repository is created you will
+    probably want to delete the directory and check our your mirror again
+    using the clone command.
+
+    For example:
+
+      git-mirror init https://github.com/justinethier/git-mirror.git git@github.com:your-account/test.git
+
+  clone REMOTE_REPO SERVER
+   
+    Clone will create a local clone of your mirrored repository and setup the
+    local repository to track all upstream branches so we can sync them.
+
+    For example:
+
+      git-mirror init https://github.com/justinethier/git-mirror.git git@github.com:your-account/test.git
+
+  update
+
+    Update our mirrored repository with changes from upstream. 
+    This includes updates to all tracked branches.
+
+    For example:
+
+      git-mirror update
+
+EOF
+        exit 1
+esac
+
