@@ -118,7 +118,7 @@ The following commands are provided:
 
     For example:
 
-      git-mirror init https://github.com/justinethier/git-mirror.git git@github.com:your-account/test.git
+      git-mirror clone https://github.com/justinethier/git-mirror.git git@github.com:your-account/test.git
 
   update
 

@@ -129,7 +129,7 @@ The following commands are provided:
 
     For example:
 
-      git-lfs-mirror init https://github.com/justinethier/git-mirror.git git@github.com:your-account/test.git
+      git-lfs-mirror clone https://github.com/justinethier/git-mirror.git git@github.com:your-account/test.git
 
   update
 
