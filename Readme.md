@@ -26,7 +26,7 @@ Clone will create a local clone of your mirrored repository and setup the local 
 
 For example:
 
-    git-mirror init https://github.com/justinethier/git-mirror.git git@github.com:your-account/test.git
+    git-mirror clone https://github.com/justinethier/git-mirror.git git@github.com:your-account/test.git
 
 ## `update`
 
